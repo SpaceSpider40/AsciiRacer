@@ -7,7 +7,7 @@ public class Vector3 {
     public float y;
     public float z;
 
-    public static Vector3[] axes = new Vector3[] {
+    public static Vector3[] axes = new Vector3[]{
             right(), up(), forward()
     };
 
@@ -76,8 +76,15 @@ public class Vector3 {
         return this;
     }
 
+    public Vector3 setZero() {
+        x = 0;
+        y = 0;
+        z = 0;
+        return this;
+    }
+
     public float[] asFloats() {
-        return new float[] { x, y, z };
+        return new float[]{x, y, z};
     }
 
     public Vector3 copy() {
@@ -116,8 +123,8 @@ public class Vector3 {
         float rad = (float) Math.toRadians(angle);
         float cos = (float) Math.cos(rad);
         float sin = (float) Math.sin(rad);
-        float _y = y;
-        float _z = z;
+        float _y  = y;
+        float _z  = z;
         y = _y * cos - _z * sin;
         z = _y * sin + _z * cos;
         return this;
@@ -127,8 +134,8 @@ public class Vector3 {
         float rad = (float) Math.toRadians(angle);
         float cos = (float) Math.cos(rad);
         float sin = (float) Math.sin(rad);
-        float _x = x;
-        float _z = z;
+        float _x  = x;
+        float _z  = z;
         x = _x * cos + _z * sin;
         z = -_x * sin + _z * cos;
         return this;
@@ -138,8 +145,8 @@ public class Vector3 {
         float rad = (float) Math.toRadians(angle);
         float cos = (float) Math.cos(rad);
         float sin = (float) Math.sin(rad);
-        float _x = x;
-        float _y = y;
+        float _x  = x;
+        float _y  = y;
         x = _x * cos - _y * sin;
         y = _x * sin + _y * cos;
         return this;
@@ -147,6 +154,9 @@ public class Vector3 {
 
     public Vector3 normalize() {
         float length = (float) Math.sqrt(x * x + y * y + z * z);
+
+        if (length == 0.0f) return this;
+
         x = x / length;
         y = y / length;
         z = z / length;
@@ -155,6 +165,11 @@ public class Vector3 {
 
     public Vector3 normalized() {
         float length = (float) Math.sqrt(x * x + y * y + z * z);
+
+        if (length == 0.0f){
+            return this;
+        }
+
         return new Vector3(x / length, y / length, z / length);
     }
 
@@ -192,10 +207,6 @@ public class Vector3 {
 
     @Override
     public String toString() {
-        return "Vector3{" +
-                "x=" + x +
-                ", y=" + y +
-                ", z=" + z +
-                '}';
+        return String.format("{%.3f,%.3f,%.3f}", x, y, z);
     }
 }

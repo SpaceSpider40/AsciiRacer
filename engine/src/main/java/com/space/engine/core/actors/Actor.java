@@ -1,75 +1,63 @@
 package com.space.engine.core.actors;
 
 import com.space.engine.core.actors.components.ActorComponent;
-import com.space.engine.core.actors.components.MeshComponent;
-import com.space.engine.core.actors.components.TransformComponent;
-import com.space.engine.core.graphics.Color;
-import com.space.engine.core.graphics.RenderObject;
-import com.space.engine.core.graphics.Renderer;
+import com.space.engine.core.math.Matrix44;
+import com.space.engine.core.math.Transform;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+public abstract class Actor extends Entity {
 
-public abstract class Actor implements RenderObject {
+    public final Transform transform = new Transform();
 
-    private UUID uid = UUID.randomUUID();
-
-    protected final List<ActorComponent> components = new ArrayList<>();
-
-    //todo: consumes to much memory
-    public <T> T getComponent(Class<T> componentClass) {
-        return components.stream()
-                         .filter(componentClass::isInstance)
-                         .map(componentClass::cast)
-                         .findFirst() //todo: slow
-                         .orElse(null);
-    }
-
-    public boolean hasComponent(Class<? extends ActorComponent> componentClass) {
-        return components.stream()
-                         .anyMatch(componentClass::isInstance);
-    }
-
-    @Override
-    public Renderer.VisualInstance getVisualInstance() {//todo: this design is wrong
-
-        var tc = getComponent(TransformComponent.class);
-        var mc = getComponent(MeshComponent.class);
-
-        if (tc == null || mc == null) return null;
-
-        return new Renderer.VisualInstance(
-                tc.position,
-                tc.rotation,
-                tc.scale,
-                mc.getTriangles(),
-                new Color[]{Color.WHITE}
-        );
-    }
+    private final Transform lastTransform = new Transform();
+    private final Matrix44 modelMatrix = new Matrix44();
 
     public final void start() {
-        components.forEach(ActorComponent::start);
+        for (ActorComponent comp : getComponents()){
+            comp.start();
+        }
 
         onStart();
     }
 
     public final void update(double deltaTime) {
-        components.forEach(c -> c.update(deltaTime));
+        for (ActorComponent comp : getComponents()){
+            comp.update(deltaTime);
+        }
 
         onUpdate(deltaTime);
     }
 
     public final void step(double deltaTime) {
-        components.forEach(c -> c.step(deltaTime));
+        for (ActorComponent comp : getComponents()){
+            comp.step(deltaTime);
+        }
 
         onStep(deltaTime);
     }
 
     public final void end() {
-        components.forEach(ActorComponent::end);
+        for (ActorComponent comp : getComponents()){
+            comp.end();
+        }
 
         onEnd();
+    }
+
+    public final Matrix44 getModelMatrix(){
+        if (transform == lastTransform){
+            return modelMatrix;
+        }
+
+        modelMatrix.setIdentity();
+        modelMatrix.setModelMatrix(
+                transform.position,
+                transform.rotation,
+                transform.scale
+        );
+
+        lastTransform.set(transform);
+
+        return modelMatrix;
     }
 
     protected abstract void onStart();

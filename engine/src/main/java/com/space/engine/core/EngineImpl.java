@@ -1,14 +1,15 @@
 package com.space.engine.core;
 
-import com.space.engine.core.actors.components.CameraComponent;
-import com.space.engine.core.actors.components.TransformComponent;
+import com.space.engine.core.actors.Actor;
+import com.space.engine.core.actors.components.MeshComponent;
 import com.space.engine.core.assets.AssetId;
 import com.space.engine.core.assets.AssetManager;
-import com.space.engine.core.graphics.AsciiRendererV2;
+import com.space.engine.core.graphics.AsciiRendererV3;
 import com.space.engine.core.graphics.Renderer;
 import com.space.engine.core.graphics.ui.DebugStatsUIElement;
 import com.space.engine.core.physics.IPhysics;
 import com.space.engine.core.physics.Physics;
+import com.space.engine.core.physics.PhysicsObsolete;
 import com.space.engine.core.util.TerminalSizer;
 
 import java.io.IOException;
@@ -74,12 +75,17 @@ public final class EngineImpl implements Engine {
 
         // Init redering
         var terminalSize = TerminalSizer.getTerminalSize();
-        renderer = new AsciiRendererV2();
-        renderer.init(terminalSize.width(), terminalSize.height());
+        AsciiRendererV3.get().init(
+                terminalSize.width(),
+                terminalSize.height()
+        );
         // Init ui
 
         // init physics0.00000001f
-        physics = new Physics(this, 0.00000986f);// 9.86f
+        physics = new PhysicsObsolete(this, 0.00000986f);// 9.86f
+        if (!Physics.get().init(0.986f)) {
+            throw new RuntimeException("Failed to initialize Physics!");
+        }
 
         // register all buildin writers and readers
         assetManager = new AssetManager(Path.of("assets")); // todo: engine should export write function
@@ -143,6 +149,9 @@ public final class EngineImpl implements Engine {
                 () -> renderTime,
                 () -> physicsTime);
 
+        //todo: temp  call on start
+        currentWorld().getActors().forEach(Actor::start);
+
         while (state == EngineState.RUNNING) {
             var frameStartTime = System.nanoTime();
 
@@ -156,7 +165,7 @@ public final class EngineImpl implements Engine {
 
             // tick
             while (accumulator >= TPS) {
-                tick();
+                step();
                 accumulator -= TPS;
             }
 
@@ -165,20 +174,22 @@ public final class EngineImpl implements Engine {
             ele.update(deltaTime);
 
             // render
-            if (renderer != null) {
-                long renderStartTime = System.nanoTime();
-                // submit objects
-                worldManager.getCurrentWorld().getActors().forEach(a -> {
-                    renderer.submit(a);
-                });
-                // submit ui
-                renderer.submit( // todo: test
-                        ele);
+            long renderStartTime = System.nanoTime();
+            AsciiRendererV3.get().startDrawing(worldManager.getActiveCamera());
 
-                // render
-                renderer.draw();
-                renderTime = (System.nanoTime() - renderStartTime) / 1_000_000.0;
-            }
+            //todo: temp
+            worldManager.getCurrentWorld().getActors().forEach(a -> {
+
+                if (a.hasComponent(MeshComponent.class)) {
+                    var mc = a.getComponent(MeshComponent.class);
+
+                    AsciiRendererV3.get().draw(a.getModelMatrix(), mc);
+                }
+            });
+            AsciiRendererV3.get().draw(ele);
+
+            AsciiRendererV3.get().endDrawing();
+            renderTime = (System.nanoTime() - renderStartTime) / 1_000_000.0;
 
             double elapsedMs = (System.nanoTime() - frameStartTime) / 1_000_000.0;
             double sleepMs   = FPS - elapsedMs;
@@ -205,34 +216,20 @@ public final class EngineImpl implements Engine {
         if (Input.IsKeyDown(Input.KEY_X))
             shutdown();// todo: temp exit key
 
-        worldManager.getCurrentWorld().getActors().forEach(a -> a.update(deltaTime));
+        for (Actor actor : worldManager.getCurrentWorld().getActors()) {
+            actor.update(deltaTime);
+        }
     }
 
-    private void tick() {
-
-        //find active camera and pass to renderer
-        worldManager.getCurrentWorld().getActors().forEach(a -> {
-            if (a.hasComponent(CameraComponent.class)) {
-                var cc = a.getComponent(CameraComponent.class);
-                var ct = a.getComponent(TransformComponent.class);
-                if (cc.isActive()) {
-                    renderer.camera(
-                            ct.position.asFloats(),
-                            ct.rotation.asFloats(),
-                            cc.near,
-                            cc.far,
-                            cc.fov
-                    );
-                }
-            }
-        });
-
+    private void step() {
         // todo: check if terminal size has changed. if so restart the renderer
-        worldManager.getCurrentWorld().getActors().forEach(a -> a.step(TPS));
+        for (Actor actor : worldManager.getCurrentWorld().getActors()) {
+            actor.step(TPS);
+        }
 
         if (physics != null) {
             long startPhysicsTime = System.nanoTime();
-//            physics.update(TPS);
+            Physics.get().step(TPS);
             physicsTime = (System.nanoTime() - startPhysicsTime) / 1_000_000.0;
         }
     }
@@ -243,6 +240,7 @@ public final class EngineImpl implements Engine {
         System.out.print(TerminalCodes.showCursor(true));
         System.out.print(TerminalCodes.moveCursor(1, 1));
         System.out.print(TerminalCodes.clear());
+        System.out.print(TerminalCodes.resetColors());
     }
 
     public static class TerminalCodes {
@@ -256,6 +254,10 @@ public final class EngineImpl implements Engine {
 
         public static String clear() {
             return "\033[0J";
+        }
+
+        public static String resetColors() {
+            return "\033[0m";
         }
     }
 }

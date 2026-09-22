@@ -1,9 +1,6 @@
 package com.space.engine.core;
 
-import com.space.engine.core.ecs.components.ActiveCameraComponent;
-import com.space.engine.core.ecs.components.CameraComponent;
-import com.space.engine.core.ecs.components.TransformComponent;
-import com.space.engine.core.math.Vector3;
+import com.space.engine.core.actors.CameraActor;
 
 public class WorldManager {
 
@@ -17,6 +14,11 @@ public class WorldManager {
 
         return currentWorld;
     }
+
+    public CameraActor getActiveCamera() {
+        return currentWorld.getActiveCamera();
+    }
+
 
     @SuppressWarnings("D")
     private World createTemplateWorld() {

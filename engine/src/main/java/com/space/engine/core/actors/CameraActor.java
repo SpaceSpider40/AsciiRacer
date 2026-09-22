@@ -1,17 +1,19 @@
 package com.space.engine.core.actors;
 
-import com.space.engine.core.actors.components.CameraComponent;
-import com.space.engine.core.actors.components.TransformComponent;
-
 public class CameraActor extends Actor {
+
+    public final float near;
+    public final float far;
+    public final float fov;
 
     public CameraActor(
             float near,
             float far,
             float fov
     ) {
-        components.add(new CameraComponent(near, far, fov));
-        components.add(new TransformComponent());
+        this.near = near;
+        this.far = far;
+        this.fov = fov;
     }
 
     @Override
@@ -26,7 +28,6 @@ public class CameraActor extends Actor {
 
     @Override
     protected void onStep(double deltaTime) {
-
     }
 
     @Override

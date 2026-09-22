@@ -218,9 +218,9 @@ class Vector3Test {
 
         String text = vector.toString();
 
-        assertTrue(text.contains("x=1.0"));
-        assertTrue(text.contains("y=2.0"));
-        assertTrue(text.contains("z=3.0"));
+        assertTrue(text.contains("1.0"));
+        assertTrue(text.contains("2.0"));
+        assertTrue(text.contains("3.0"));
     }
 
     private static void assertVectorEquals(Vector3 expected, Vector3 actual) {

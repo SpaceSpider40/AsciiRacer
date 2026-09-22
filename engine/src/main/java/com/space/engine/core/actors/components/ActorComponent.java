@@ -1,9 +1,18 @@
 package com.space.engine.core.actors.components;
 
+import com.space.engine.core.actors.Entity;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.UUID;
 
 public abstract class ActorComponent {
     private UUID uid = UUID.randomUUID();
+
+    @Setter
+    @Getter(AccessLevel.PROTECTED)
+    private Entity owner;
 
     public final void start() {
         onStart();

@@ -21,15 +21,15 @@ public final class TerminalSizer {
             StringBuilder sb = new StringBuilder();
             int           c;
 
-            if (true) throw new Exception("DEBUG");
+//            if (true) throw new Exception("DEBUG"); //todo: instead of this do some flag to set by Intelij
+
+            //todo: on terminals not supporting this it hangs forever
             while ((c = in.read()) != -1) {
                 if (c == 'R') break;
                 if (c != '\033' && c != '[') {
                     sb.append((char) c);
                 }
             }
-
-            Debug.log(sb.toString());
 
             String[] parts = sb.toString().split(";");
 

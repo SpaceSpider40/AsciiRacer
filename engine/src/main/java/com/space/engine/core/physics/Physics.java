@@ -1,490 +1,198 @@
 package com.space.engine.core.physics;
 
-import com.space.engine.core.Engine;
-import com.space.engine.core.EngineImpl;
-import com.space.engine.core.ecs.components.TransformComponent;
-import com.space.engine.core.ecs.components.physics.BoxColliderComponent;
-import com.space.engine.core.ecs.components.physics.GravityComponent;
-import com.space.engine.core.ecs.components.physics.RigidbodyComponent;
-import com.space.engine.core.ecs.EcsRegister;
-import com.space.engine.core.math.Vector3;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.github.stephengold.joltjni.*;
+import com.github.stephengold.joltjni.enumerate.EActivation;
+import com.github.stephengold.joltjni.enumerate.EMotionQuality;
+import com.github.stephengold.joltjni.enumerate.EMotionType;
+import com.github.stephengold.joltjni.enumerate.EOverrideMassProperties;
+import com.github.stephengold.joltjni.readonly.ConstShape;
+import com.space.engine.core.Debug;
+import com.space.engine.core.actors.components.RigidBodyComponent;
+import com.space.engine.core.math.Transform;
+import com.space.engine.core.physics.shapes.BoxShapeDefinition;
+import com.space.engine.core.physics.shapes.ShapeDefinition;
+import com.space.engine.core.util.JoltNativeLibrary;
 
-//todo: off center collision angular velocity
-public class Physics implements IPhysics {
-    public final float gravity;
+public final class Physics {
+    public static final int MAX_BODIES       = 1000;
+    public static final int NUM_BODY_MUTEXES = 0;//use default value
+    public static final int MAX_BODY_PAIRS   = 65536;
+    public static final int MAX_CONTACTS     = 20480;
 
-    private final Engine      engine;
-    private final List<int[]> collisionEvents = new ArrayList<>();
+    public static final int NUM_BP_LAYERS = 1;
+    public static final int NUM_OP_LAYERS = 2;
 
-    public Physics(EngineImpl engineImpl, float gravity) {
-        this.engine = engineImpl;
+    public static final int OP_LAYER_STATIC  = 1;
+    public static final int OP_LAYER_DYNAMIC = 0;
 
-        if (gravity > 0) {
-            this.gravity = -gravity;
-        } else {
-            this.gravity = gravity;
-        }
+    private static final Physics INSTANCE = new Physics();
+
+    private final int numWorkerThreads = Runtime.getRuntime().availableProcessors();
+
+    private float gravity;
+
+    private JobSystem     jobSystem;
+    private TempAllocator tempAllocator;
+    private PhysicsSystem physicsSystem;
+
+    public static Physics get() {
+        return INSTANCE;
     }
 
-    @Override
-    public void update(double delta) {
-        collisionEvents.clear();
-
-        applyForces(delta);
-        applyGravity(delta);
-        applyVelocity(delta);
-        resolveCollisions();
-
-        clearAccumulators();
-    }
-
-    @Override
-    public void force(int entity, Vector3 force) {
-        var ecs = getEcs();
-        if (ecs.has(entity, RigidbodyComponent.class)){
-            var rb = ecs.get(entity, RigidbodyComponent.class);
-            var invMass = invMass(rb);
-
-            if (invMass > 0){
-                rb.forceAccumulator().add(force);
-            }
-        }
-    }
-
-    @Override
-    public void impulse(int entity, Vector3 impulse) {
-        var ecs = getEcs();
-        if (ecs.has(entity, RigidbodyComponent.class)){
-            var rb = ecs.get(entity, RigidbodyComponent.class);
-
-            if (rb.mass() > 0){
-                rb.velocity().add(impulse.copy().mul(invMass(rb)));
-            }
-        }
-    }
-
-    @Override
-    public void torque(int entity, Vector3 torque) {
-        var ecs = getEcs();
-        if (ecs.has(entity, RigidbodyComponent.class)){
-            var rb = ecs.get(entity, RigidbodyComponent.class);
-            var invInertia = invInertia(rb);
-
-            if (invInertia > 0){
-                rb.torqueAccumulator().add(torque);
-            }
-        }
-    }
-
-    @Override
-    public void angularImpulse(int entity, Vector3 impulse) {
-        var ecs = getEcs();
-        if (ecs.has(entity, RigidbodyComponent.class)){
-            var rb = ecs.get(entity, RigidbodyComponent.class);
-            var invInertia = invInertia(rb);
-
-            if (invInertia > 0){
-                rb.angularVelocity().add(impulse.copy().mul(invInertia));
-            }
-        }
-    }
-
-    private void resolveCollisions() {
-        var ecs = getEcs();
-
-        //todo: this is narrow pass, implement Bounding Volume Hierarchy before this.
-        var entities = ecs.view(
-                TransformComponent.class,
-                BoxColliderComponent.class
-        ).toArray();
-
-        for (int i = 0; i < entities.length; i++) {
-            int entI = (int) entities[i];
-            var tA   = ecs.get(entI, TransformComponent.class);
-            var cA   = ecs.get(entI, BoxColliderComponent.class);
-
-            for (int j = i + 1; j < entities.length; j++) {
-                int entJ = (int) entities[j];
-                var tB   = ecs.get(entJ, TransformComponent.class);
-                var cB   = ecs.get(entJ, BoxColliderComponent.class);
-
-                float distSq  = tA.position().copy().sub(tB.position()).lengthSquared();
-                float maxDist = cA.boundingRadius() + cB.boundingRadius();
-                if (distSq > maxDist * maxDist) {
-                    continue; //bounding spheres don't touch skip
-                }
-
-                CollisionManifold manifold = checkOBBCollision(tA, cA, tB, cB);
-                if (manifold.colliding) {
-                    collisionEvents.add(new int[]{entI, entJ});
-
-                    resolveCollisionResponse(entI, entJ, tA, tB, manifold);
-                }
-            }
-        }
-    }
-
-    private CollisionManifold checkOBBCollision(
-            TransformComponent tA, BoxColliderComponent cA,
-            TransformComponent tB, BoxColliderComponent cB
-    ) {
-
-        Vector3[] axesA = tA.getLocalAxes();
-        Vector3[] axesB = tB.getLocalAxes();
-
-        Vector3 centerDelta = tB.position().copy().sub(tA.position());
-
-        CollisionManifoldBuilder manifold = new CollisionManifoldBuilder();
-
-        // face axes A
-        for (int i = 0; i < 3; i++) {
-            if (!testOBBAxis(
-                    axesA[i],
-                    centerDelta,
-                    axesA,
-                    cA,
-                    axesB,
-                    cB,
-                    manifold
-            )) {
-                return CollisionManifold.none();
-            }
-        }
-
-        // face axes B
-        for (int i = 0; i < 3; i++) {
-            if (!testOBBAxis(
-                    axesB[i],
-                    centerDelta,
-                    axesA,
-                    cA,
-                    axesB,
-                    cB,
-                    manifold
-            )) {
-                return CollisionManifold.none();
-            }
-        }
-
-        // edge axes
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                Vector3 crossAxis = Vector3.cross(axesA[i], axesB[j]);
-
-                if (crossAxis.lengthSquared() < 0.000001f)
-                    continue;
-
-                crossAxis.normalize();
-
-                if (!testOBBAxis(
-                        crossAxis,
-                        centerDelta,
-                        axesA,
-                        cA,
-                        axesB,
-                        cB,
-                        manifold
-                )) {
-                    return CollisionManifold.none();
-                }
-            }
-        }
-
-        Vector3 normal = manifold.normal;
-
-        if (normal.dot(centerDelta) < 0) {
-            normal.mul(-1);
-        }
-
-        return new CollisionManifold(true, normal, manifold.penetration);
-    }
-
-    public List<int[]> getCollisions() {
-        return collisionEvents;
-    }
-
-    private void applyGravity(double delta) {
-        var ecs = getEcs();
-
-        var entities = ecs.view(
-                RigidbodyComponent.class,
-                GravityComponent.class
-        );
-
-        for (int entity : entities) {
-            var gravityComponent = ecs.get(entity, GravityComponent.class);
-
-            if (gravityComponent == null || !gravityComponent.hasGravity()) continue;
-
-            var rigidbodyComponent = ecs.get(entity, RigidbodyComponent.class);
-
-            rigidbodyComponent.velocity().y += (float) (gravity * delta);
-        }
-    }
-
-    private void applyVelocity(double delta) {
-        var ecs = getEcs();
-
-        var entities = ecs.view(
-                RigidbodyComponent.class,
-                TransformComponent.class
-        );
-
-        for (int entity : entities) {
-            var rigidbodyComponent = ecs.get(entity, RigidbodyComponent.class);
-            var transformComponent = ecs.get(entity, TransformComponent.class);
-
-            transformComponent.position().add(rigidbodyComponent.velocity().copy().mul((float) delta));
-        }
-    }
-
-    private void applyForces(double delta){
-        var ecs = getEcs();
-        var entities = ecs.view(RigidbodyComponent.class);
-
-        for (int entity : entities) {
-            var rb = ecs.get(entity, RigidbodyComponent.class);
-
-            float invMass = invMass(rb);
-
-            if (invMass == 0) continue;
-
-
-            Vector3 linearAcceleration = rb.forceAccumulator().copy().mul(invMass);
-            rb.velocity().add(linearAcceleration.mul((float) delta));
-
-            float invInertia = invInertia(rb);
-            Vector3 angularAcceleration= rb.torqueAccumulator().copy().mul(invInertia);
-            rb.angularVelocity().add(angularAcceleration.mul((float) delta));
-        }
-    }
-
-    private void clearAccumulators(){
-        var ecs = getEcs();
-        var entities = ecs.view(RigidbodyComponent.class);
-
-        for (int entity : entities){
-            var rb = ecs.get(entity, RigidbodyComponent.class);
-            rb.forceAccumulator().set(0, 0, 0);
-            rb.torqueAccumulator().set(0, 0, 0);
-        }
-    }
-
-    private void resolveCollisionResponse(
-            int entA,
-            int entB,
-            TransformComponent tA,
-            TransformComponent tB,
-            CollisionManifold manifold
-    ) {
-        var ecs = getEcs();
-
-        var bodyA = ecs.get(entA, RigidbodyComponent.class);
-        var bodyB = ecs.get(entB, RigidbodyComponent.class);
-
-        float invMassA = invMass(bodyA);
-        float invMassB = invMass(bodyB);
-
-        if (invMassA + invMassB == 0) return;//both objects are static
-
-        correctPositions(
-                tA, tB,
-                manifold.normal,
-                manifold.penetration,
-                invMassA,
-                invMassB
-        );
-
-        Vector3 velA = bodyA != null ? bodyA.velocity() : Vector3.zero();
-        Vector3 velB = bodyB != null ? bodyB.velocity() : Vector3.zero();
-
-        Vector3 relativeVelocity = velB.copy().sub(velA);
-
-        float velAlongNormal = relativeVelocity.dot(manifold.normal);
-        if (velAlongNormal > 0) return; //already moving away from each other
-
-        float restA = bodyA != null ? bodyA.bounciness() : 0.02f;
-        float restB = bodyB != null ? bodyB.bounciness() : 0.02f;
-        float e     = Math.max(restA, restB);
-
-        float j = -(1.0f + e) * velAlongNormal;
-        j /= (invMassA + invMassB);
-
-        Vector3 impulse = manifold.normal.copy().mul(j);
-
-        if (bodyA != null){
-            bodyA.velocity().sub(impulse.copy().mul(invMassA));
-        }
-
-        if (bodyB != null){
-            bodyB.velocity().add(impulse.copy().mul(invMassB));
-        }
-
-        Vector3 tangent = relativeVelocity.copy().sub(manifold.normal.copy().mul(velAlongNormal));
-
-        if (tangent.lengthSquared() > 0.0001f){
-            tangent.normalize();
-
-            float friction = 0.3f;
-
-            float jt = -relativeVelocity.dot(tangent);
-            jt/=(invMassA + invMassB);
-
-
-            Vector3 frictionImpulse = tangent.mul(jt * friction);
-
-            if (bodyA != null) {
-                bodyA.velocity().sub(frictionImpulse.copy().mul(invMassA));
-            }
-
-            if (bodyB != null) {
-                bodyB.velocity().add(frictionImpulse.copy().mul(invMassB));
-            }
-        }
-
-        //resolve bounciness and sliding
-//        if (hasBodyA) {
-//            var rigidbody = ecs.get(entA, RigidbodyComponent.class);
-//
-//            Vector3 oppositeNormal = manifold.normal.copy().mul(-1);
-//            resolveVelocityResponse(oppositeNormal, rigidbody);
-//        }
-//
-//        if (hasBodyB) {
-//            var rigidbody = ecs.get(entB, RigidbodyComponent.class);
-//
-//            resolveVelocityResponse(manifold.normal, rigidbody);
-//        }
-    }
-
-    private void resolveVelocityResponse(Vector3 normal, RigidbodyComponent rigidbody) {
-        float velocityAlongNormal = rigidbody.velocity().dot(normal);
-
-        if (velocityAlongNormal > 0) {
-            return;
-        }
-
-        float bounciness = rigidbody.bounciness();
-
-//        if (Math.abs(velocityAlongNormal) < 0.05f){
-//            bounciness = 0.0f;
-//        }
-
-        Vector3 normalVelocity  = normal.copy().mul(velocityAlongNormal);
-        Vector3 tangentVelocity = rigidbody.velocity().copy().sub(normalVelocity);
-
-        Vector3 bouncedVelocity = normal.copy().mul(-velocityAlongNormal * bounciness);
-
-        rigidbody.velocity().set(tangentVelocity.add(bouncedVelocity));
-    }
-
-    private boolean testOBBAxis(
-            Vector3 axis,
-            Vector3 centerDelta,
-            Vector3[] axesA,
-            BoxColliderComponent cA,
-            Vector3[] axesB,
-            BoxColliderComponent cB,
-            CollisionManifoldBuilder manifold
-    ) {
-        float radiusA = projectOBBRadius(axis, axesA, cA);
-        float radiusB = projectOBBRadius(axis, axesB, cB);
-
-        float distance = Math.abs(centerDelta.dot(axis));
-        float overlap  = radiusA + radiusB - distance;
-
-        if (overlap <= 0) {
+    public boolean init(float gravity) {
+        this.gravity = Math.abs(gravity);
+
+        try {
+            JoltNativeLibrary.load();
+        } catch (Exception e) {
+            //todo log
             return false;
         }
 
-        if (overlap < manifold.penetration) {
-            manifold.penetration = overlap;
+        JoltPhysicsObject.startCleaner();
+        Jolt.registerDefaultAllocator();
+        Jolt.installDefaultAssertCallback();
+        Jolt.installDefaultTraceCallback();
+        Jolt.setTraceAllocations(true);
 
-            var dir = axis.copy();
-            if (dir.dot(centerDelta) < 0) {
-                dir.mul(-1.0f);
-            }
-            manifold.normal = dir;
+        if (!Jolt.newFactory()) {
+            return false;
         }
+
+        Jolt.registerTypes();
+
+        tempAllocator = new TempAllocatorMalloc();
+        jobSystem     = new JobSystemThreadPool(Jolt.cMaxPhysicsJobs, Jolt.cMaxPhysicsBarriers, numWorkerThreads);
+
+        physicsSystem = new PhysicsSystem();
+
+        ObjectLayerPairFilterTable         ovoFilter = new ObjectLayerPairFilterTable(NUM_OP_LAYERS);
+
+        ovoFilter.enableCollision(OP_LAYER_DYNAMIC, OP_LAYER_DYNAMIC);
+        ovoFilter.enableCollision(OP_LAYER_DYNAMIC, OP_LAYER_STATIC);
+        ovoFilter.disableCollision(OP_LAYER_STATIC, OP_LAYER_STATIC);
+
+        BroadPhaseLayerInterfaceTable      layerMap  = new BroadPhaseLayerInterfaceTable(NUM_OP_LAYERS, NUM_BP_LAYERS);
+
+        layerMap.mapObjectToBroadPhaseLayer(OP_LAYER_DYNAMIC, 0);
+        layerMap.mapObjectToBroadPhaseLayer(OP_LAYER_STATIC, 0);
+
+        ObjectVsBroadPhaseLayerFilterTable ovbFilter = new ObjectVsBroadPhaseLayerFilterTable(layerMap, NUM_BP_LAYERS, ovoFilter, NUM_OP_LAYERS);
+
+        physicsSystem.init(
+                MAX_BODIES,
+                NUM_BODY_MUTEXES,
+                MAX_BODY_PAIRS,
+                MAX_CONTACTS,
+                layerMap,
+                ovbFilter,
+                ovoFilter
+        );
+
+        physicsSystem.setGravity(0, -this.gravity, 0);
+
+        physicsSystem.setContactListener(new CustomContactListener() {
+            @Override
+            public void onContactAdded(long body1Va, long body2Va, long manifoldVa, long settingsVa) {
+                super.onContactAdded(body1Va, body2Va, manifoldVa, settingsVa);
+
+                Debug.log(String.format("Contact! %d <=> %d", body1Va, body2Va));
+            }
+        });
 
         return true;
     }
 
-    private float projectOBBRadius(
-            Vector3 axis,
-            Vector3[] boxAxes,
-            BoxColliderComponent collider
-    ) {
-        //todo: mul halfextents by scale
-        var he = collider.halfExtents();
-
-        return he.x * Math.abs(axis.dot(boxAxes[0])) + he.y * Math.abs(axis.dot(boxAxes[1])) + he.z * Math.abs(axis.dot(boxAxes[2]));
+    public void step(double delta) {
+        double deltaSeconds      = delta / 1000;
+        int    numCollisionSteps = 1;
+        physicsSystem.update((float) deltaSeconds, numCollisionSteps, tempAllocator, jobSystem);
     }
 
-    private void correctPositions(
-            TransformComponent tA,
-            TransformComponent tB,
-            Vector3 normal,
-            float penetration,
-            float invMassA,
-            float invMassB
-    ) {
-        float slop              = 0.001f;
-        float correctionPercent = 0.8f;
+    public void CreateBody(RigidBodyComponent rigidBody, Transform transform) {
+        BodyInterface bi = physicsSystem.getBodyInterface();
+        try (BodyCreationSettings bcs = new BodyCreationSettings()) {
+            bcs.setShape(createShape(rigidBody.getShape()));
+            bcs.setRestitution(rigidBody.getRestitution());
+            bcs.setFriction(rigidBody.getFriction());
+            bcs.setLinearDamping(rigidBody.getLinearDamping());
+            bcs.setAngularDamping(rigidBody.getAngularDamping());
 
-        float correctionAmount = Math.max(penetration - slop, 0.0f) / (invMassA + invMassB) * correctionPercent;
+            bcs.getMassPropertiesOverride().setMass(rigidBody.getMass());
+            bcs.setOverrideMassProperties(EOverrideMassProperties.CalculateInertia);
 
-        if (correctionAmount <= 0) {
-            return;
-        }
+            bcs.setPosition(new RVec3(
+                    transform.position.x,
+                    transform.position.y,
+                    transform.position.z
+            ));
 
-        Vector3 correction = normal.copy().mul(correctionAmount);
+            bcs.setRotation(Quat.sEulerAngles(
+                    transform.rotation.x,
+                    transform.rotation.y,
+                    transform.rotation.z
+            ));
 
-        if (invMassA > 0){
-            tA.position().sub(correction.copy().mul(invMassA));
-        }
+            switch (rigidBody.getMotionType()) {
+                case DYNAMIC -> {
+                    bcs.setMotionType(EMotionType.Dynamic);
+                    bcs.setObjectLayer(OP_LAYER_DYNAMIC);
+                    bcs.setMotionQuality(EMotionQuality.LinearCast);
+                }
+                case STATIC -> {
+                    bcs.setMotionType(EMotionType.Static);
+                    bcs.setObjectLayer(OP_LAYER_STATIC);
+                }
+            }
 
-        if (invMassB > 0){
-            tB.position().add(correction.copy().mul(invMassB));
-        }
-
-//        if (hasBodyA && hasBodyB) {
-//            tA.position().sub(correction.copy().mul(0.5f));
-//            tB.position().add(correction.copy().mul(0.5f));
-//        } else if (hasBodyA) {
-//            tA.position().sub(correction);
-//        } else if (hasBodyB) {
-//            tB.position().add(correction);
-//        }
-    }
-
-    private EcsRegister getEcs() {
-        return null;
-//        return engine.currentWorld().getEntityRegistry();
-    }
-
-    private float invMass(RigidbodyComponent body){
-        return (body != null && body.mass() > 0) ? 1f / body.mass() : 0;
-    }
-    private float invInertia(RigidbodyComponent body){
-        return (body != null && body.inertiaTensor() > 0) ? 1f / body.inertiaTensor() : 0;
-    }
-
-    private static class CollisionManifoldBuilder {
-        private Vector3 normal      = Vector3.zero();
-        private float   penetration = Float.MAX_VALUE;
-    }
-
-    private record CollisionManifold(
-            boolean colliding,
-            Vector3 normal,
-            float penetration
-    ) {
-        public static CollisionManifold none() {
-            return new CollisionManifold(false, null, 0);
+            rigidBody.setBody(bi.createBody(bcs));
         }
     }
+
+    public void AddRigidBody(RigidBodyComponent rigidBody) {
+        BodyInterface bi = physicsSystem.getBodyInterface();
+
+        rigidBody.setBodyActive(true);
+
+        bi.addBody(rigidBody.getBody(), EActivation.Activate);
+    }
+
+    public void RemoveRigidBody(RigidBodyComponent rigidBody) {
+        BodyInterface bi = physicsSystem.getBodyInterface();
+
+        rigidBody.setBodyActive(false);
+
+        bi.removeBody(rigidBody.getBody().getId());
+
+        rigidBody.setBody(null);
+    }
+
+    public void synchronizeRigidBody(RigidBodyComponent rigidBody, Transform transform) {
+        if (rigidBody.getBody() == null) return;
+
+        transform.position.set(
+                rigidBody.getBody().getPosition().x(),
+                rigidBody.getBody().getPosition().y(),
+                rigidBody.getBody().getPosition().z()
+        );
+
+        transform.rotation.set(
+                (float)Math.toDegrees(rigidBody.getBody().getRotation().getRotationAngle(Vec3.sAxisX())),
+                (float)Math.toDegrees(rigidBody.getBody().getRotation().getRotationAngle(Vec3.sAxisY())),
+                (float)Math.toDegrees(rigidBody.getBody().getRotation().getRotationAngle(Vec3.sAxisZ()))
+        );
+    }
+
+    private ConstShape createShape(ShapeDefinition shapeDefinition) {
+        return switch (shapeDefinition) {
+            case BoxShapeDefinition boxShapeDefinition -> {
+                BoxShapeDefinition box = (BoxShapeDefinition) shapeDefinition;
+
+                yield new BoxShape(box.halfExtents().x, box.halfExtents().y, box.halfExtents().z);
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + shapeDefinition);
+        };
+    }
+
 }

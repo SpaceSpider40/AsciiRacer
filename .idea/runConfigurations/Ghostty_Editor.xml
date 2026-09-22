@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Ghostty Editor" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="ghostty -e bash -c 'cd ~/Projects/AE/dist; ls; java -jar tools/AEEditor.jar '" />
+  <configuration default="false" name="Ghostty Editor" type="ShConfigurationType" activateToolWindowBeforeRun="false">
+    <option name="SCRIPT_TEXT" value="ghostty -e bash -c 'cd ~/Projects/AE/dist; ls; java -ea -jar tools/AEEditor.jar '" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />
