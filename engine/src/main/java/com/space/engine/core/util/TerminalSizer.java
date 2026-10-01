@@ -21,7 +21,7 @@ public final class TerminalSizer {
             StringBuilder sb = new StringBuilder();
             int           c;
 
-//            if (true) throw new Exception("DEBUG"); //todo: instead of this do some flag to set by Intelij
+            if (true) throw new Exception("DEBUG"); //todo: instead of this do some flag to set by Intelij
 
             //todo: on terminals not supporting this it hangs forever
             while ((c = in.read()) != -1) {

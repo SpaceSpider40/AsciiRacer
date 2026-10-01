@@ -1,35 +1,30 @@
 package com.space.engine.core.assets;
 
-public class AssetId {
+import lombok.NonNull;
 
-    private String path;
+public record AssetId(String path) {
 
-    public AssetId(String path) {
-        if (path == null || path.isBlank()){
+    public AssetId {
+        if (path == null || path.isBlank()) {
             throw new IllegalArgumentException("Asset path cannot be null or blank");
         }
 
         path = path.replace("\\", "/");
 
-        if (path.startsWith("/")){
+        if (path.startsWith("/")) {
             throw new IllegalArgumentException("Asset path must be relative");
         }
 
-        if (path.contains("..")){
+        if (path.contains("..")) {
             throw new IllegalArgumentException("Asset path cannot contain '..'");
         }
 
-        this.path = path;
     }
 
-    public String path(){
-        return path;
-    }
-
-    public String extension(){
+    public String extension() {
         int dot = path.lastIndexOf('.');
 
-        if (dot == -1 || dot == path.length() - 1){
+        if (dot == -1 || dot == path.length() - 1) {
             return "";
         }
 
@@ -37,7 +32,8 @@ public class AssetId {
     }
 
     @Override
-    public String toString(){
+    @NonNull
+    public String toString() {
         return path;
     }
 

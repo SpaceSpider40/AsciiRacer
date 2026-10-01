@@ -1,8 +1,10 @@
 package com.space.engine.core.graphics;
 
 import com.space.engine.core.math.Vector3;
+import lombok.Getter;
 
 //todo: improve by storing values as packed int;
+@Getter
 public class Color {
     public static final Color RED     = new Color(255, 0, 0);
     public static final Color GREEN   = new Color(0, 255, 0);
@@ -42,36 +44,34 @@ public class Color {
         this.b = b;
     }
 
-    public short getR() {
-        return r;
-    }
-
     public void setR(short r) {
         this.r = (short) Math.clamp(r, 0, 255);
-    }
-
-    public short getG() {
-        return g;
     }
 
     public void setG(short g) {
         this.g = (short) Math.clamp(g, 0, 255);
     }
 
-    public short getB() {
-        return b;
-    }
-
     public void setB(short b) {
         this.b = (short) Math.clamp(b, 0, 255);
+    }
+
+    public void set(short r, short g, short b) {
+        setR(r);
+        setB(b);
+        setG(g);
+    }
+
+    public void set(Color other) {
+        set(other.r, other.g, other.b);
     }
 
     public Vector3 asVector() {
         return new Vector3(r, g, b);
     }
 
-    public float[] asFloats(){
-        return new float[]{r,g,b};
+    public float[] asFloats() {
+        return new float[]{r, g, b};
     }
 
     /**
@@ -81,11 +81,11 @@ public class Color {
      * @return int packed int color
      */
     public int pack() {
-        return pack(r,g,b);
+        return pack(r, g, b);
 //        return (r << 16) | (g << 8) | b;
     }
 
-    public static int pack(short r, short g, short b){
+    public static int pack(short r, short g, short b) {
         return (r << 16) | (g << 8) | b;
     }
 

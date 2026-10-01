@@ -14,16 +14,6 @@
     <build>
         <finalName>AE</finalName>
 
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <excludes>
-                    <exclude>assets/**</exclude>
-                    <exclude>engine.json</exclude>
-                </excludes>
-            </resource>
-        </resources>
-
         <plugins>
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -42,43 +32,22 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.3.1</version>
                 <executions>
+                    <!-- Assets -->
                     <execution>
-                        <id>copy-engineImpl-jar-to-dist</id>
+                        <id>copy-assets-to-dist</id>
                         <phase>package</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.parent.basedir}/dist</outputDirectory>
+                            <outputDirectory>${project.parent.basedir}/dist/assets/builtin</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${project.build.directory}</directory>
-                                    <includes>
-                                        <include>${project.build.finalName}.jar</include>
-                                    </includes>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-engineImpl-files-to-dist</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.parent.basedir}/dist</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>src/main/resources</directory>
-                                    <includes>
-                                        <include>assets/**</include>
-                                        <include>engine.json</include>
-                                    </includes>
+                                    <directory>${project.basedir}/assets</directory>
                                     <filtering>false</filtering>
                                 </resource>
                             </resources>
@@ -87,7 +56,7 @@
                 </executions>
             </plugin>
 
-<!--            LOMBOK -->
+            <!--            LOMBOK -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.1</version>
@@ -121,6 +90,13 @@
         <dependency>
             <groupId>com.github.stephengold</groupId>
             <artifactId>jolt-jni-Linux64</artifactId>
+            <version>6.0.0</version>
+            <classifier>DebugSp</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.stephengold</groupId>
+            <artifactId>jolt-jni-Windows64</artifactId>
             <version>6.0.0</version>
             <classifier>DebugSp</classifier>
             <scope>runtime</scope>

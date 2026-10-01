@@ -3,13 +3,19 @@ package com.space.engine.core.actors;
 import com.space.engine.core.actors.components.ActorComponent;
 import com.space.engine.core.math.Matrix44;
 import com.space.engine.core.math.Transform;
+import lombok.Getter;
+import lombok.Setter;
 
-public abstract class Actor extends Entity {
+public class Actor extends Entity {
 
     public final Transform transform = new Transform();
 
     private final Transform lastTransform = new Transform();
     private final Matrix44 modelMatrix = new Matrix44();
+
+    @Setter
+    @Getter
+    private String name;
 
     public final void start() {
         for (ActorComponent comp : getComponents()){
@@ -60,11 +66,19 @@ public abstract class Actor extends Entity {
         return modelMatrix;
     }
 
-    protected abstract void onStart();
+    protected void onStart(){
 
-    protected abstract void onUpdate(double deltaTime);
+    }
 
-    protected abstract void onStep(double deltaTime);
+    protected void onUpdate(double deltaTime){
 
-    protected abstract void onEnd();
+    }
+
+    protected void onStep(double deltaTime){
+
+    }
+
+    protected void onEnd(){
+
+    }
 }

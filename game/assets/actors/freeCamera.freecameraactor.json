@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "uid": "1f80c76e-daf9-4d70-aa09-f7616fe301f2",
+  "type": "FreeCameraActor",
+  "transform": {
+    "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+    }
+  },
+  "walkSpeed": 0.01,
+  "lookSpeed": 0.05,
+  "near": 0.01,
+  "far": 3000,
+  "fov": 60
+}

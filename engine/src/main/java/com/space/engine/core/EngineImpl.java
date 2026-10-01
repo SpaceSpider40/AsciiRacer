@@ -1,20 +1,28 @@
 package com.space.engine.core;
 
 import com.space.engine.core.actors.Actor;
+import com.space.engine.core.actors.components.MaterialComponent;
 import com.space.engine.core.actors.components.MeshComponent;
 import com.space.engine.core.assets.AssetId;
 import com.space.engine.core.assets.AssetManager;
+import com.space.engine.core.assets.data.ActorData;
+import com.space.engine.core.assets.data.CameraData;
+import com.space.engine.core.assets.data.FreeCameraData;
+import com.space.engine.core.assets.data.WorldData;
+import com.space.engine.core.assets.data.components.MaterialData;
+import com.space.engine.core.assets.data.components.MeshData;
+import com.space.engine.core.assets.factories.*;
+import com.space.engine.core.exceptions.AssetException;
 import com.space.engine.core.graphics.AsciiRendererV3;
-import com.space.engine.core.graphics.Renderer;
+import com.space.engine.core.graphics.Color;
 import com.space.engine.core.graphics.ui.DebugStatsUIElement;
-import com.space.engine.core.physics.IPhysics;
+import com.space.engine.core.log.FileWriter;
 import com.space.engine.core.physics.Physics;
-import com.space.engine.core.physics.PhysicsObsolete;
 import com.space.engine.core.util.TerminalSizer;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
 
 public final class EngineImpl implements Engine {
 
@@ -29,15 +37,9 @@ public final class EngineImpl implements Engine {
             EngineState.FAILED);
 
     private final WorldManager worldManager = new WorldManager();
-
-    private final Thread updateThread = new Thread(this::loop, "main-loop");
+    private       AssetManager assetManager;
 
     private Config config;
-
-    private Renderer renderer = null;
-    private IPhysics physics  = null;
-
-    private AssetManager assetManager;
 
     private EngineState state = EngineState.CREATED;
 
@@ -49,7 +51,7 @@ public final class EngineImpl implements Engine {
         return state;
     }
 
-    public void init() {
+    public void init(Properties properties) {
         if (!initializableStates.contains(state)) {
             return; // already initialized
         }
@@ -67,6 +69,17 @@ public final class EngineImpl implements Engine {
             throw new RuntimeException(e);
         }
 
+        //todo move to separate method
+        if (config.debug()) {
+            try {
+                Debug.writer = new FileWriter();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        initAssetManager(properties);
+
         try {
             Input.init();
         } catch (IOException | InterruptedException e) {
@@ -82,14 +95,11 @@ public final class EngineImpl implements Engine {
         // Init ui
 
         // init physics0.00000001f
-        physics = new PhysicsObsolete(this, 0.00000986f);// 9.86f
         if (!Physics.get().init(0.986f)) {
             throw new RuntimeException("Failed to initialize Physics!");
         }
 
         // register all buildin writers and readers
-        assetManager = new AssetManager(Path.of("assets")); // todo: engine should export write function
-//        assetManager.registerLoader("mesh", new MeshLoader());
 
         // todo: if project file exist load last used scene
 
@@ -109,6 +119,28 @@ public final class EngineImpl implements Engine {
         return worldManager.getCurrentWorld();
     }
 
+    public void loadWorld(String path) {
+        try {
+            World world = assetManager.load(new AssetId(path));
+
+            worldManager.setCurrentWorld(path, world);
+        } catch (AssetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public AssetManager assets() {
+        return assetManager;
+    }
+
+    public double dt() {
+        return deltaTime;
+    }
+
+    public float dtf() {
+        return (float) dt();
+    }
+
     public int createEntity() {
         return -1;
     }
@@ -117,10 +149,12 @@ public final class EngineImpl implements Engine {
 
     }
 
-    public void run() {
+    public void run(Game game) {
         state = EngineState.RUNNING;
 
-        loop(); // for now no the same thread
+        game.onStart();
+
+        loop(game); // for now no the same thread
         // updateThread.run();
     }
 
@@ -132,7 +166,7 @@ public final class EngineImpl implements Engine {
         state = EngineState.STOPPED;
     }
 
-    private void loop() {
+    private void loop(Game game) {
         final double maxFrameTimeMs = 250.0; // todo: move to cofig
 
         double accumulator = 0;
@@ -165,11 +199,13 @@ public final class EngineImpl implements Engine {
 
             // tick
             while (accumulator >= TPS) {
+                game.onStep();
                 step();
                 accumulator -= TPS;
             }
 
             // update
+            game.onUpdate();
             update();
             ele.update(deltaTime);
 
@@ -181,9 +217,13 @@ public final class EngineImpl implements Engine {
             worldManager.getCurrentWorld().getActors().forEach(a -> {
 
                 if (a.hasComponent(MeshComponent.class)) {
-                    var mc = a.getComponent(MeshComponent.class);
+                    var mesh = a.getComponent(MeshComponent.class);
+                    var material = a.getComponent(MaterialComponent.class);
+                    if (material == null){
+                        material = new MaterialComponent();
+                    }
 
-                    AsciiRendererV3.get().draw(a.getModelMatrix(), mc);
+                    AsciiRendererV3.get().draw(a.getModelMatrix(), mesh, material);
                 }
             });
             AsciiRendererV3.get().draw(ele);
@@ -227,11 +267,9 @@ public final class EngineImpl implements Engine {
             actor.step(TPS);
         }
 
-        if (physics != null) {
-            long startPhysicsTime = System.nanoTime();
-            Physics.get().step(TPS);
-            physicsTime = (System.nanoTime() - startPhysicsTime) / 1_000_000.0;
-        }
+        long startPhysicsTime = System.nanoTime();
+        Physics.get().step(TPS);
+        physicsTime = (System.nanoTime() - startPhysicsTime) / 1_000_000.0;
     }
 
     private void cleanup() {
@@ -243,6 +281,21 @@ public final class EngineImpl implements Engine {
         System.out.print(TerminalCodes.resetColors());
     }
 
+    private void initAssetManager(Properties properties) {
+        if (state != EngineState.INITIALIZING) return; //can invoke only while initializing
+
+        assetManager = new AssetManager(properties);
+        assetManager.register("world", WorldData.class, new WorldAssetFactory());
+        assetManager.register("actor", ActorData.class, new ActorAssetFactory());
+        assetManager.register("cameraactor", CameraData.class, new CameraAssetFactory());
+        assetManager.register("freecameraactor", FreeCameraData.class, new FreeCameraAssetFactory());
+
+        assetManager.register("mesh", MeshData.class, new MeshComponentAssetFactory());
+        assetManager.register("material", MaterialData.class, new MaterialComponentAssetFactory());
+
+    }
+
+    //todo: move under window manager
     public static class TerminalCodes {
         public static String showCursor(boolean show) {
             return show ? "\033[?25h" : "\033[?25l";

@@ -19,6 +19,9 @@ public class WorldManager {
         return currentWorld.getActiveCamera();
     }
 
+    public void setCurrentWorld(String path, World world){
+        currentWorld = world;
+    }
 
     @SuppressWarnings("D")
     private World createTemplateWorld() {

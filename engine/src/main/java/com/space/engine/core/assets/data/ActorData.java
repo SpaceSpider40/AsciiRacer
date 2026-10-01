@@ -1,20 +1,25 @@
 package com.space.engine.core.assets.data;
 
+import com.space.engine.core.math.Transform;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
 import java.util.UUID;
 
-import com.space.engine.core.math.Transform;
-
-import lombok.Builder;
-import lombok.Data;
-
+@EqualsAndHashCode(callSuper = true)
 @Data
-@Builder
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ActorData extends AssetData {
-    private UUID uid;
+    protected UUID uid;
 
-    private String name;
+    protected String name;
 
-    private Transform transform;
+    protected Transform transform;
 
-    // todo: components data
+    protected String[] components;
 }

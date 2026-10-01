@@ -18,41 +18,34 @@
 
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.4.2</version>
                 <configuration>
+                    <outputDirectory>${project.parent.basedir}/dist/tools</outputDirectory>
                     <archive>
                         <manifest>
                             <mainClass>com.space.engine.editor.Main</mainClass>
                             <addClasspath>true</addClasspath>
+                            <classpathPrefix>../lib/</classpathPrefix>
                         </manifest>
-                        <manifestEntries>
-                            <Class-Path>../AE.jar</Class-Path>
-                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
             <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.3.1</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.8.1</version>
                 <executions>
                     <execution>
-                        <id>copy-editor-jar-to-dist</id>
+                        <id>copy-dependencies-to-dist</id>
                         <phase>package</phase>
                         <goals>
-                            <goal>copy-resources</goal>
+                            <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.parent.basedir}/dist/tools</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${project.build.directory}</directory>
-                                    <includes>
-                                        <include>${project.build.finalName}.jar</include>
-                                    </includes>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
+                            <outputDirectory>${project.parent.basedir}/dist/lib</outputDirectory>
+                            <includeScope>runtime</includeScope>
                         </configuration>
                     </execution>
                 </executions>

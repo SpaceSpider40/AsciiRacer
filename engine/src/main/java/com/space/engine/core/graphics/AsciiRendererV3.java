@@ -2,6 +2,7 @@ package com.space.engine.core.graphics;
 
 import com.space.engine.core.Debug;
 import com.space.engine.core.actors.CameraActor;
+import com.space.engine.core.actors.components.MaterialComponent;
 import com.space.engine.core.actors.components.MeshComponent;
 import com.space.engine.core.graphics.ui.UIElement;
 import com.space.engine.core.math.Matrix44;
@@ -52,17 +53,21 @@ public class AsciiRendererV3 {
         Debug.log("Renderer initialized with " + length + " pixels");
     }
 
+    public void startDrawing(CameraActor camera) {
+        startDrawing(camera, Color.BLACK);
+    }
+
     /**
      * Prepares the rendering system to start a new frame by clearing the buffers
      * and updating the camera's view matrix based on its position and orientation.
      *
      * @param camera the camera actor whose transform is used to compute the view matrix
      */
-    public void startDrawing(CameraActor camera) {
+    public void startDrawing(CameraActor camera, Color clearColor) {
         //clear
         Arrays.fill(frameBuffer, ' ');
         Arrays.fill(depthBuffer, 0);
-        Arrays.fill(colorBuffer, 0);
+        Arrays.fill(colorBuffer, clearColor.pack());
 
         this.eyeMatrix.setIdentity();
 
@@ -79,7 +84,7 @@ public class AsciiRendererV3 {
         );
     }
 
-    public void draw(Matrix44 modelMatrix, MeshComponent mesh) {
+    public void draw(Matrix44 modelMatrix, MeshComponent mesh, MaterialComponent material) {
 
         float[] mm = modelMatrix.m;
 
@@ -180,7 +185,7 @@ public class AsciiRendererV3 {
             float diffuse   = SMath.VectorDot(nx, ny, nz, lightDir.x, lightDir.y, lightDir.z);
             float intensity = (Math.max(0.0f, diffuse) * (1.0f - ambient)) + ambient;
             char  ch        = ramp.charAt((int) (intensity * ramp.length() - 1));
-            
+
             //perspective
             float ooz = 1.0f / vz0;
             vx0 = projectX(vx0, ooz);
@@ -224,9 +229,7 @@ public class AsciiRendererV3 {
                         if (pz > depthBuffer[bufferIdx]) {
                             depthBuffer[bufferIdx] = pz;
                             frameBuffer[bufferIdx] = ch;
-
-                            //todo: add colors
-                            colorBuffer[bufferIdx] = Color.WHITE.pack();
+                            colorBuffer[bufferIdx] = material.albedo.pack();
                         }
                     }
                 }

@@ -1,0 +1,42 @@
+[2026-09-25T09:35:32.069568089][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T09:35:32.075414777][INFO]: Renderer initialized with 1920 pixels
+[2026-09-25T09:35:32.476216469][INFO]: Racer init!
+[2026-09-25T09:35:32.476360983][INFO]: Racer start!
+[2026-09-25T09:37:24.125856689][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T09:37:25.114501816][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T09:37:25.118576713][INFO]: Renderer initialized with 1920 pixels
+[2026-09-25T09:37:25.54541114][INFO]: Racer init!
+[2026-09-25T09:37:25.545567132][INFO]: Racer start!
+[2026-09-25T09:37:39.633806581][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T09:37:40.621825885][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T09:37:40.627569797][INFO]: Renderer initialized with 1920 pixels
+[2026-09-25T09:37:41.028016473][INFO]: Racer init!
+[2026-09-25T09:37:41.028191609][INFO]: Racer start!
+[2026-09-25T09:38:31.492253591][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T09:38:32.370576397][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T09:38:32.377574372][INFO]: Renderer initialized with 1920 pixels
+[2026-09-25T09:38:32.794913878][INFO]: Racer init!
+[2026-09-25T09:38:32.795228368][INFO]: Racer start!
+[2026-09-25T09:38:48.397334899][ERROR]: Failed to load asset(freecameraactor): actors/freeCamera.freecameraactor
+[2026-09-25T09:39:59.48872074][ERROR]: Failed to load actor: com.space.engine.core.exceptions.AssetLoadFail: assets/actors/freeCamera.freecameraactor.json
+[2026-09-25T09:40:01.629992605][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T09:59:38.351023797][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T09:59:38.354773893][INFO]: Renderer initialized with 1920 pixels
+[2026-09-25T09:59:38.732102061][INFO]: Racer init!
+[2026-09-25T09:59:38.732246006][INFO]: Racer start!
+[2026-09-25T10:10:05.000885351][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T12:57:06.389356166][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T12:57:06.394431784][INFO]: Renderer initialized with 1920 pixels
+[2026-09-25T12:57:06.809356769][INFO]: Racer init!
+[2026-09-25T12:57:06.8094864][INFO]: Racer start!
+[2026-09-25T12:57:06.829931279][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T12:57:09.539352053][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T12:57:09.542886027][INFO]: Renderer initialized with 1920 pixels
+[2026-09-25T12:57:09.959863044][INFO]: Racer init!
+[2026-09-25T12:57:09.96002217][INFO]: Racer start!
+[2026-09-25T12:57:09.985584072][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T12:57:11.970235144][WARN]: Failed to detect terminal size. Falling back to default size
+[2026-09-25T12:57:11.975034871][INFO]: Renderer initialized with 1920 pixels
+[2026-09-25T12:57:12.398184374][INFO]: Racer init!
+[2026-09-25T12:57:12.398431073][INFO]: Racer start!
+[2026-09-25T12:59:08.144096725][WARN]: Failed to detect terminal size. Falling back to default size
