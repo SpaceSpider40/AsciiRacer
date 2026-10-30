@@ -11,8 +11,9 @@
     <packaging>pom</packaging>
     <modules>
         <module>engine</module>
-        <module>tools/editor</module>
         <module>game</module>
+        <module>tools/editor</module>
+        <module>tools/importer</module>
     </modules>
 
     <properties>

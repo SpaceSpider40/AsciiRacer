@@ -21,4 +21,15 @@ public final class FileAssetSource implements AssetSource{
 
         return Files.readAllBytes(file);
     }
+
+    @Override
+    public void write(AssetId id, byte[] data) throws IOException {
+        Path file = root.resolve(id.path() + ".json").normalize();
+
+        if (!file.startsWith(root.normalize())){
+            throw new IOException("Asset path escapes root: " + id);
+        }
+
+        Files.write(file,data);
+    }
 }

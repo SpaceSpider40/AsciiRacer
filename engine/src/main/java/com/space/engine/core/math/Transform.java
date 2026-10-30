@@ -17,9 +17,21 @@ public class Transform {
         scale.set(other.scale);
     }
 
-    public void clear(){
+    public void clear() {
         position.setZero();
         rotation.setZero();
-        scale.set(1,1,1);
+        scale.set(1, 1, 1);
+    }
+
+    public void add(Transform other) {
+        position.add(other.position);
+        rotation.add(other.rotation);
+        scale.add(other.scale);
+    }
+
+    public void sub(Transform other) {
+        position.sub(other.position);
+        rotation.sub(other.rotation);
+        scale.sub(other.scale);
     }
 }

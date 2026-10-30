@@ -7,11 +7,16 @@ import com.space.engine.core.assets.data.CameraData;
 
 public class CameraAssetFactory implements AssetFactory<CameraData, CameraActor> {
     @Override
-    public CameraActor create(CameraData data, AssetContext context) {
+    public CameraActor construct(CameraData data, AssetContext context) {
         return new CameraActor(
                 data.getNear(),
                 data.getFar(),
-                data.getFov()
-        );
+                data.getFov());
+    }
+
+    @Override
+    public CameraData construct(CameraActor object, AssetContext context) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

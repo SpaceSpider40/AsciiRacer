@@ -10,7 +10,7 @@ import com.space.engine.core.exceptions.AssetException;
 
 public class ActorAssetFactory implements AssetFactory<ActorData, Actor> {
     @Override
-    public Actor create(ActorData data, AssetContext context) {
+    public Actor construct(ActorData data, AssetContext context) {
         var actor = new Actor();
         actor.transform.set(data.getTransform());
 
@@ -25,5 +25,11 @@ public class ActorAssetFactory implements AssetFactory<ActorData, Actor> {
         }
 
         return actor;
+    }
+
+    @Override
+    public ActorData construct(Actor object, AssetContext context) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

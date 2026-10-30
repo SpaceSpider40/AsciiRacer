@@ -1,6 +1,5 @@
 package com.space.engine.core.assets.data;
 
-import java.util.Collection;
 import java.util.UUID;
 
 import com.space.engine.core.assets.ActorInstance;

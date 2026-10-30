@@ -1,15 +1,22 @@
 package com.space.engine.core.graphics.ui;
 
 import com.space.engine.core.graphics.Color;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
 public abstract class UIElement {
     protected int x, y;
     protected int width, height;
 
+    @Setter
     protected byte layer;
 
     protected char[] chars;
     protected int[]  colors;
+
+    @Setter
+    protected boolean isVisible;
 
     protected UIElement(
             int x,
@@ -24,30 +31,6 @@ public abstract class UIElement {
 
         chars  = new char[width * height];
         colors = new int[width * height];
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
-    public char[] getChars() {
-        return chars;
-    }
-
-    public int[] getColors(){
-        return colors;
     }
 
     public abstract void update(double deltaTime);

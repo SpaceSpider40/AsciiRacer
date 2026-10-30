@@ -10,5 +10,9 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class MeshData extends AssetData {
     protected float[] vertices;
+    protected float[] normals;
+    protected float[] uvs;
     protected int[] indices;
+
+    protected String name;
 }

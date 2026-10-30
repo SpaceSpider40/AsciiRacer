@@ -7,15 +7,23 @@ import java.util.Properties;
 public class Launcher {
 
     public static void launch(Game game) {
+        Properties properties = loadProperties();
+
+        launch(game, properties);
+    }
+
+    /*
+    Allows launching the application in the context of a different project. Useful for edittor/imporer.
+     */
+    public static void launch(Game game, Properties properties) {
         EngineImpl engine = new EngineImpl();
 
         game.setEngine(engine);
 
-        Properties properties = loadProperties(engine);
-
         engine.init(properties);
-
-        //todo: set title
+        engine.setProjectTitle(
+                (String) properties.getOrDefault("game.name", "Unnamed Game")
+        );
 
         game.onInit();
 
@@ -24,7 +32,7 @@ public class Launcher {
         engine.run(game);
     }
 
-    private static Properties loadProperties(EngineImpl engine) {
+    private static Properties loadProperties() {
         Properties props = new Properties();
 
         try {
@@ -32,10 +40,6 @@ public class Launcher {
         } catch (IOException e) {
             Debug.err("Failed to load game.properties");
         }
-
-        engine.setProjectTitle(
-                (String) props.getOrDefault("game.name", "Unnamed Game")
-        );
 
         return props;
     }

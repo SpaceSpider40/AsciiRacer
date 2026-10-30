@@ -4,4 +4,4 @@
 
 cd "./dist" || exit
 
-./gracer.sh
+./racer.sh

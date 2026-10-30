@@ -18,4 +18,14 @@ public class JsonAssetSerializer implements AssetSerializer {
 
         return data;
     }
+
+    @Override
+    public <T extends AssetData> byte[] encode(T data, Class<? extends AssetData> dataType, AssetId id) {
+
+        if (data == null) {
+            throw new IllegalArgumentException("Invalid asset: " + id);
+        }
+
+        return gson.toJson(data, dataType).getBytes();
+    }
 }

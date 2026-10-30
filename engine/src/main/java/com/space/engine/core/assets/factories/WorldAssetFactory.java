@@ -12,25 +12,26 @@ import com.space.engine.core.exceptions.AssetException;
 
 public class WorldAssetFactory implements AssetFactory<WorldData, World> {
     @Override
-    public World create(WorldData data, AssetContext context) {
-        //todo: validate if file is not malformed
+    public World construct(WorldData data, AssetContext context) {
+        // todo: validate if file is not malformed
         World world = new World(data.getName());
 
         if (data.getActors() != null) {
 
             int loadedActors = 0;
             for (ActorInstance instance : data.getActors()) {
-                if (instance.getPrefab() == null) continue;
+                if (instance.getPrefab() == null)
+                    continue;
 
                 var id = new AssetId(instance.getPrefab());
                 try {
                     Actor actor = context.load(id);
 
-                    if (instance.getTransform() != null){
+                    if (instance.getTransform() != null) {
                         actor.transform.set(instance.getTransform());
                     }
 
-                    if (instance.getName() != null){
+                    if (instance.getName() != null) {
                         actor.setName(instance.getName());
                     }
 
@@ -45,5 +46,11 @@ public class WorldAssetFactory implements AssetFactory<WorldData, World> {
         }
 
         return world;
+    }
+
+    @Override
+    public WorldData construct(World object, AssetContext context) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }
