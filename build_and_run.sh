@@ -4,4 +4,4 @@
 
 cd "./dist" || exit
 
-./racer.sh
+kitty --hold ./racer.sh
