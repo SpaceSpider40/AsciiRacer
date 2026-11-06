@@ -25,7 +25,7 @@ public class Main {
             );
 
             try (AudioInputStream covertedStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream)) {
-                DataLine.Info info = new DataLine.Info(Class.class, targetFormat);
+                DataLine.Info info = new DataLine.Info(Clip.class, targetFormat);
 
                 if (!AudioSystem.isLineSupported(info)) {
                     System.err.println("Ten format audio nie jest wspierany przez Twój system operacyjny.");

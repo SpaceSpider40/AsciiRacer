@@ -1,10 +1,16 @@
 package com.space.engine.core;
 
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.NonBlockingReader;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+
+//todo: move to background thread
 public final class Input {
 
     public static final int KEY_A = 97;
@@ -34,9 +40,9 @@ public final class Input {
     public static final int KEY_Y = 121;
     public static final int KEY_Z = 122;
 
-    private static final Set<Integer> keysDown     = ConcurrentHashMap.newKeySet();
+    private static final Set<Integer> keysDown = ConcurrentHashMap.newKeySet();
     private static final Set<Integer> keysJustDown = ConcurrentHashMap.newKeySet();
-    private static final Set<Integer> keysJustUp   = ConcurrentHashMap.newKeySet();
+    private static final Set<Integer> keysJustUp = ConcurrentHashMap.newKeySet();
 
     private static final int KEY_INPUT_BUFFER_SIZE = 256;
 
@@ -52,14 +58,15 @@ public final class Input {
         return keysJustDown.contains(keycode);
     }
 
+    private static Terminal terminal;
+
     static void init() throws IOException, InterruptedException {
-        //enable raw input
-        if (EngineImpl.isWindows) {
-            new ProcessBuilder("cmd", "/c", "stty raw -echo").inheritIO().start().waitFor();
-        } else {
-            String[] cmd = {"/bin/sh", "-c", "stty raw -echo < /dev/tty"};
-            new ProcessBuilder(cmd).start().waitFor();
-        }
+
+        terminal = TerminalBuilder.builder()
+                .system(true)
+                .build();
+
+        terminal.enterRawMode();
 
         System.out.print("\033[>27u");
         System.out.flush();
@@ -70,41 +77,36 @@ public final class Input {
         keysJustDown.clear();
         keysJustUp.clear();
 
-        //parse inputs
-        InputStream input = System.in;
-
-        byte[] buffer    = new byte[KEY_INPUT_BUFFER_SIZE];
-        int    bytesRead = 0;
         try {
-            if (input.available() > 0) {
-                bytesRead = input.read(buffer);
+
+            StringBuffer sb = new StringBuffer();
+            NonBlockingReader reader = terminal.reader();
+
+            int c;
+            while ((c = reader.read(1)) >= 0) {
+                sb.append((char) c);
             }
-        } catch (IOException e) {
-            Debug.err(e.getMessage());
+
+            if (sb.isEmpty()) return;
+
+            String[] sequences = sb.toString()  .split("(?=\033)");
+            for (String seq : sequences) {
+                parseKittyEvent(seq);
+            }
+
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        if (bytesRead <= 0) return;
 
-        String[] sequences = new String(buffer, 0, bytesRead).split("(?=\033)");
-        for (String seq : sequences) {
-            parseKittyEvent(seq);
-        }
     }
 
     static void clean() {
-        //restore terminal
+
         try {
-            System.out.print("\033[<u");
-            System.out.flush();
-
-            if (EngineImpl.isWindows){
-                new ProcessBuilder("cmd", "/c", "stty cooked echo").inheritIO().start().waitFor();
-            }else{
-                String[] cmd = {"/bin/sh", "-c", "stty cooked echo < /dev/tty"};
-
-                new ProcessBuilder(cmd).start().waitFor();
-            }
-        }catch (Exception ignored){}
+            terminal.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void parseKittyEvent(String seq) {
@@ -125,7 +127,7 @@ public final class Input {
 
         if (eventType == 2) return;
 
-        String   keyAndMods = parts[0];
+        String keyAndMods = parts[0];
         String[] keyDetails = keyAndMods.split(";");
 
         int keyCode;
