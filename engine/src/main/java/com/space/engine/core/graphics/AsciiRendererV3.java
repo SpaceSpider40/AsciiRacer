@@ -4,7 +4,7 @@ import com.space.engine.core.Debug;
 import com.space.engine.core.actors.CameraActor;
 import com.space.engine.core.actors.components.MaterialComponent;
 import com.space.engine.core.actors.components.MeshComponent;
-import com.space.engine.core.graphics.ui.UIElement;
+import com.space.engine.core.graphics.ui.UiElement;
 import com.space.engine.core.math.Matrix44;
 import com.space.engine.core.math.SMath;
 import com.space.engine.core.math.Vector3;
@@ -237,7 +237,7 @@ public class AsciiRendererV3 {
         }
     }
 
-    public void draw(UIElement element) {
+    public void draw(UiElement element) {
         int elementX = element.getX();
         int elementY = element.getY();
         int elementWidth = element.getWidth();

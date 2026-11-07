@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter
-public abstract class UIElement {
+public abstract class UiElement {
     protected int x, y;
     protected int width, height;
 
@@ -18,7 +18,7 @@ public abstract class UIElement {
     @Setter
     protected boolean isVisible;
 
-    protected UIElement(
+    protected UiElement(
             int x,
             int y,
             int width,
@@ -34,6 +34,13 @@ public abstract class UIElement {
     }
 
     public abstract void update(double deltaTime);
+
+    protected void clear() {
+        for (int i = 0; i < chars.length; i++) {
+            chars[i] = ' ';
+            colors[i] = 0;
+        }
+    }
 
     protected void put(int x, int y, char c) {
         if (!isInBounds(x, y)) return;

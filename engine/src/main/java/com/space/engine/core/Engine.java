@@ -1,6 +1,8 @@
 package com.space.engine.core;
 
 import com.space.engine.core.assets.AssetManager;
+import com.space.engine.core.graphics.TerminalWindow;
+import org.jline.terminal.Terminal;
 
 import java.util.Properties;
 

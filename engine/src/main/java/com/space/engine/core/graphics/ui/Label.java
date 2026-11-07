@@ -2,7 +2,7 @@ package com.space.engine.core.graphics.ui;
 
 import com.space.engine.core.graphics.Color;
 
-public class Label extends UIElement {
+public class Label extends UiElement {
 
     private final String text;
     private final Color color = new Color(255, 0, 255);

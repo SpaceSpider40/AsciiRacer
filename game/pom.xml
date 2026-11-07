@@ -105,6 +105,7 @@
                                         <include>*.properties</include>
                                         <include>*.json</include>
                                         <include>*.sh</include>
+                                        <include>*.bat</include>
                                     </includes>
                                     <filtering>false</filtering>
                                 </resource>

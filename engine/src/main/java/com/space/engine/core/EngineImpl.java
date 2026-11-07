@@ -14,15 +14,14 @@ import com.space.engine.core.assets.data.components.MeshData;
 import com.space.engine.core.assets.factories.*;
 import com.space.engine.core.exceptions.AssetException;
 import com.space.engine.core.graphics.AsciiRendererV3;
-import com.space.engine.core.graphics.Color;
+import com.space.engine.core.graphics.TerminalWindow;
 import com.space.engine.core.graphics.ui.DebugStatsUIElement;
 import com.space.engine.core.graphics.ui.Label;
 import com.space.engine.core.graphics.ui.UiCanvas;
 import com.space.engine.core.graphics.ui.UiManager;
+import com.space.engine.core.graphics.ui.widgets.ProgressBar;
 import com.space.engine.core.log.FileWriter;
 import com.space.engine.core.physics.Physics;
-import com.space.engine.core.util.TerminalSizer;
-import lombok.extern.java.Log;
 
 import java.io.IOException;
 import java.util.List;
@@ -62,10 +61,7 @@ public final class EngineImpl implements Engine {
         }
         state = EngineState.INITIALIZING;
 
-        // todo: make some abstract class "window manager"
-        System.out.print(TerminalCodes.showCursor(false));
-        System.out.print(TerminalCodes.moveCursor(1, 1));
-        System.out.print(TerminalCodes.clear());
+        initTerminalWindow();
 
         // todo: read config file
         try {
@@ -93,7 +89,7 @@ public final class EngineImpl implements Engine {
         }
 
         // Init redering
-        var terminalSize = TerminalSizer.getTerminalSize();
+        var terminalSize = TerminalWindow.get().size();
         AsciiRendererV3.get().init(
                 terminalSize.width(),
                 terminalSize.height());
@@ -180,7 +176,7 @@ public final class EngineImpl implements Engine {
 
         long previousTime = System.nanoTime();
 
-        var size = TerminalSizer.getTerminalSize();
+        var size = TerminalWindow.get().size();
         var ele = new DebugStatsUIElement(
                 size.width() - 16,
                 0,
@@ -196,6 +192,10 @@ public final class EngineImpl implements Engine {
 
         var label = new Label(size.width() / 2, size.height() / 2, "Test Label");
         canvas.add(label);
+
+        var progressBar = new ProgressBar((size.width() / 2) - 8, (size.height() / 2) - 2, 16, 1);
+        progressBar.setProgress(0.5f);
+        canvas.add(progressBar);
 
         // todo: temp call on start
         currentWorld().getActors().forEach(Actor::start);
@@ -215,6 +215,10 @@ public final class EngineImpl implements Engine {
             while (accumulator >= TPS) {
                 game.onStep();
                 step();
+                progressBar.setProgress(progressBar.getProgress() + 0.01f);
+                if (progressBar.getProgress() >= 1) {
+                    progressBar.setProgress(0);
+                }
                 accumulator -= TPS;
             }
 
@@ -290,10 +294,11 @@ public final class EngineImpl implements Engine {
     private void cleanup() {
         Input.clean();
 
-        System.out.print(TerminalCodes.showCursor(true));
-        System.out.print(TerminalCodes.moveCursor(1, 1));
-        System.out.print(TerminalCodes.clear());
-        System.out.print(TerminalCodes.resetColors());
+        try {
+            TerminalWindow.shutdown();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void initAssetManager(Properties properties) {
@@ -309,6 +314,19 @@ public final class EngineImpl implements Engine {
         assetManager.register("mesh", MeshData.class, new MeshComponentAssetFactory());
         assetManager.register("material", MaterialData.class, new MaterialComponentAssetFactory());
 
+    }
+
+    private void initTerminalWindow() {
+        try {
+            TerminalWindow.init();
+        } catch (IOException _) {
+
+        }
+
+        TerminalWindow.get()
+                .hideCursor()
+                .moveCursor(1, 1)
+                .clear();
     }
 
     // todo: move under window manager

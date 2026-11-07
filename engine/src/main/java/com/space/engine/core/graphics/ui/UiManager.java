@@ -4,7 +4,6 @@ import com.space.engine.core.Engine;
 import com.space.engine.core.Update;
 import com.space.engine.core.graphics.AsciiRendererV3;
 
-import java.util.HashMap;
 import java.util.Vector;
 
 public class UiManager implements Update {
@@ -36,7 +35,7 @@ public class UiManager implements Update {
             if (canvas == null)
                 continue;
 
-            for (UIElement element : canvas.getElements()) {
+            for (UiElement element : canvas.getElements()) {
                 AsciiRendererV3.get().draw(element);
             }
         }
@@ -50,7 +49,7 @@ public class UiManager implements Update {
             if (canvas == null)
                 continue;
 
-            for (UIElement element : canvas.getElements()) {
+            for (UiElement element : canvas.getElements()) {
                 element.update(delta);
             }
         }

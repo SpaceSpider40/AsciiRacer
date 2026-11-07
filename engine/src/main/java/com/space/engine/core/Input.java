@@ -1,11 +1,9 @@
 package com.space.engine.core;
 
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import com.space.engine.core.graphics.TerminalWindow;
 import org.jline.utils.NonBlockingReader;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -58,15 +56,15 @@ public final class Input {
         return keysJustDown.contains(keycode);
     }
 
-    private static Terminal terminal;
+    //todo: finish moving pooling to background thread
+    Runnable poolingJob = () -> {
+
+    };
+    Thread thread = new Thread(poolingJob);
+
 
     static void init() throws IOException, InterruptedException {
-
-        terminal = TerminalBuilder.builder()
-                .system(true)
-                .build();
-
-        terminal.enterRawMode();
+        TerminalWindow.get().getTerminal().enterRawMode();
 
         System.out.print("\033[>27u");
         System.out.flush();
@@ -80,7 +78,7 @@ public final class Input {
         try {
 
             StringBuffer sb = new StringBuffer();
-            NonBlockingReader reader = terminal.reader();
+            NonBlockingReader reader = TerminalWindow.get().getTerminal().reader();
 
             int c;
             while ((c = reader.read(1)) >= 0) {
@@ -89,7 +87,7 @@ public final class Input {
 
             if (sb.isEmpty()) return;
 
-            String[] sequences = sb.toString()  .split("(?=\033)");
+            String[] sequences = sb.toString().split("(?=\033)");
             for (String seq : sequences) {
                 parseKittyEvent(seq);
             }
@@ -101,12 +99,7 @@ public final class Input {
     }
 
     static void clean() {
-
-        try {
-            terminal.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        TerminalWindow.get().moveCursor(1, 1).resetColors().clear();
     }
 
     private static void parseKittyEvent(String seq) {

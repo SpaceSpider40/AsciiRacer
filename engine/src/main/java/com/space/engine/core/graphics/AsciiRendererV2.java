@@ -1,7 +1,7 @@
 package com.space.engine.core.graphics;
 
 import com.space.engine.core.Debug;
-import com.space.engine.core.graphics.ui.UIElement;
+import com.space.engine.core.graphics.ui.UiElement;
 import com.space.engine.core.math.Matrix44Pool;
 import com.space.engine.core.math.SMath;
 import com.space.engine.core.math.Vector3;
@@ -36,7 +36,7 @@ public class AsciiRendererV2 implements Renderer {
     private float[] vbo     = new float[1000 * stride]; // default to 100 visual units
     private int     vboTail = 0;
 
-    private ArrayList<UIElement> uiElements = new ArrayList<>();
+    private ArrayList<UiElement> uiElements = new ArrayList<>();
 
     public void init(int width, int height) {
         this.width  = width;
@@ -69,7 +69,7 @@ public class AsciiRendererV2 implements Renderer {
     }
 
     @Override
-    public void submit(UIElement obj) {
+    public void submit(UiElement obj) {
         uiElements.add(obj); //todo: move ui element to static array to bypass garbage collection
     }
 
@@ -259,7 +259,7 @@ public class AsciiRendererV2 implements Renderer {
         }
 
         // Layer - 1 - UI
-        for (UIElement element : uiElements) {
+        for (UiElement element : uiElements) {
             int    elementX      = element.getX();
             int    elementY      = element.getY();
             int    elementWidth  = element.getWidth();

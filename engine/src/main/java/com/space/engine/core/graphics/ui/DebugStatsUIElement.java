@@ -4,7 +4,7 @@ import com.space.engine.core.graphics.Color;
 
 import java.util.function.DoubleSupplier;
 
-public class DebugStatsUIElement extends UIElement{
+public class DebugStatsUIElement extends UiElement {
 
     private final DoubleSupplier dtSupplier;
     private final DoubleSupplier rtSupplier;

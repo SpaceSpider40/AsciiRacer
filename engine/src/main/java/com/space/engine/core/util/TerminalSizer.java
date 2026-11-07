@@ -5,6 +5,7 @@ import lombok.ToString;
 
 import java.io.InputStream;
 
+@Deprecated
 public final class TerminalSizer {
     public static final int DEFAULT_WIDTH  = 80;
     public static final int DEFAULT_HEIGHT = 24;
@@ -12,6 +13,7 @@ public final class TerminalSizer {
     public record TerminalSize(int width, int height) {
     }
 
+    @Deprecated
     public static TerminalSize getTerminalSize() {
         try {
 

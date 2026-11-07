@@ -1,7 +1,6 @@
 package com.space.engine.core.graphics;
 
-import com.space.engine.core.ecs.components.TransformComponent;
-import com.space.engine.core.graphics.ui.UIElement;
+import com.space.engine.core.graphics.ui.UiElement;
 import com.space.engine.core.math.Triangle;
 import com.space.engine.core.math.Vector3;
 
@@ -14,7 +13,7 @@ public interface Renderer {
      * submits ui for rendering
      * @param obj the array of ui elements should be sorted.
      */
-    void submit(UIElement obj);
+    void submit(UiElement obj);
     void submit(RenderObject obj);
 
     // Each object has to have position 2D, width, heitht
