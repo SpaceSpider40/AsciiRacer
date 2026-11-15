@@ -19,6 +19,7 @@ import com.space.engine.core.graphics.ui.DebugStatsUIElement;
 import com.space.engine.core.graphics.ui.Label;
 import com.space.engine.core.graphics.ui.UiCanvas;
 import com.space.engine.core.graphics.ui.UiManager;
+import com.space.engine.core.graphics.ui.layout.Box;
 import com.space.engine.core.graphics.ui.widgets.ProgressBar;
 import com.space.engine.core.log.FileWriter;
 import com.space.engine.core.physics.Physics;
@@ -112,7 +113,7 @@ public final class EngineImpl implements Engine {
         return null;
     }
 
-    // todo: this should be read from some project file
+    // todo: this should be read from some project file, move to TerminalWindow
     public void setProjectTitle(String title) {
         System.out.print("\033]2;" + title + "\033\\");
     }
@@ -133,6 +134,10 @@ public final class EngineImpl implements Engine {
 
     public AssetManager assets() {
         return assetManager;
+    }
+
+    public UiManager ui() {
+        return uiManager;
     }
 
     public double dt() {
@@ -187,15 +192,19 @@ public final class EngineImpl implements Engine {
                 () -> physicsTime);
 
         var canvas = new UiCanvas(this);
-        canvas.add(ele);
         uiManager.push(canvas);
-
-        var label = new Label(size.width() / 2, size.height() / 2, "Test Label");
-        canvas.add(label);
-
-        var progressBar = new ProgressBar((size.width() / 2) - 8, (size.height() / 2) - 2, 16, 1);
-        progressBar.setProgress(0.5f);
-        canvas.add(progressBar);
+//
+//        var label = new Label(size.width() / 2, size.height() / 2, "Test Label");
+//        canvas.add(label);
+//
+//        var box = new Box(0,0, size.width(), size.height());
+//        canvas.add(box);
+//
+//        var progressBar = new ProgressBar((size.width() / 2) - 8, (size.height() / 2) - 2, 16, 1);
+//        progressBar.setProgress(0.5f);
+//        canvas.add(progressBar);
+//
+        canvas.add(ele);
 
         // todo: temp call on start
         currentWorld().getActors().forEach(Actor::start);
@@ -215,10 +224,10 @@ public final class EngineImpl implements Engine {
             while (accumulator >= TPS) {
                 game.onStep();
                 step();
-                progressBar.setProgress(progressBar.getProgress() + 0.01f);
-                if (progressBar.getProgress() >= 1) {
-                    progressBar.setProgress(0);
-                }
+//                progressBar.setProgress(progressBar.getProgress() + 0.01f);
+//                if (progressBar.getProgress() >= 1) {
+//                    progressBar.setProgress(0);
+//                }
                 accumulator -= TPS;
             }
 
@@ -268,7 +277,6 @@ public final class EngineImpl implements Engine {
     }
 
     private void update() {
-        Input.update();
 
         if (Input.IsKeyDown(Input.KEY_X))
             shutdown();// todo: temp exit key
@@ -278,6 +286,7 @@ public final class EngineImpl implements Engine {
         }
 
         uiManager.update(deltaTime);
+        Input.update();
     }
 
     private void step() {

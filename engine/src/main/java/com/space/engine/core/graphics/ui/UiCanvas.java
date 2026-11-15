@@ -6,6 +6,11 @@ import lombok.Getter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ *
+ * Only then UiCanvas that is on top of the stack should receive input events. Other canvases, even if parts of them are visible, should not receive input events.
+ *
+ */
 @Getter
 public class UiCanvas {
     public static final int MAX_ELEMENTS = 50;
@@ -17,8 +22,8 @@ public class UiCanvas {
         this.engine = engine;
     }
 
-    public void add(UiElement element){
-        if(elements.size() >= MAX_ELEMENTS) return;
+    public void add(UiElement element) {
+        if (elements.size() >= MAX_ELEMENTS) return;
 
         elements.add(element);
     }

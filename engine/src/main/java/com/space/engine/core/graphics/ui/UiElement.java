@@ -6,6 +6,7 @@ import lombok.Setter;
 
 @Getter
 public abstract class UiElement {
+    @Setter
     protected int x, y;
     protected int width, height;
 

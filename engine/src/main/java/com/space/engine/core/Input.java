@@ -38,6 +38,8 @@ public final class Input {
     public static final int KEY_Y = 121;
     public static final int KEY_Z = 122;
 
+    private static final int DEFAULT_POOLING_HZ = 60;
+
     private static final Set<Integer> keysDown = ConcurrentHashMap.newKeySet();
     private static final Set<Integer> keysJustDown = ConcurrentHashMap.newKeySet();
     private static final Set<Integer> keysJustUp = ConcurrentHashMap.newKeySet();
@@ -57,10 +59,33 @@ public final class Input {
     }
 
     //todo: finish moving pooling to background thread
-    Runnable poolingJob = () -> {
+    private static final Runnable poolingJob = () -> {
+        while(true) {
+            try {
 
+                StringBuffer sb = new StringBuffer();
+                try (NonBlockingReader reader = TerminalWindow.get().getTerminal().reader()) {
+
+                    int c;
+                    while ((c = reader.read(1)) >= 0) { //todo: for some fucking reason this hangs for over 100ms on linux, kitty. Need to move input to separate thread
+                        sb.append((char) c);
+                    }
+                }
+
+                if (sb.isEmpty()) return;
+
+                String[] sequences = sb.toString().split("(?=\033)");
+                for (String seq : sequences) {
+                    Debug.log("Sequence="+seq);
+                    parseKittyEvent(seq);
+                }
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     };
-    Thread thread = new Thread(poolingJob);
+    private static final Thread poolingThread = new Thread(poolingJob);
 
 
     static void init() throws IOException, InterruptedException {
@@ -68,37 +93,19 @@ public final class Input {
 
         System.out.print("\033[>27u");
         System.out.flush();
+
+        poolingThread.start();
     }
 
     static void update() {
         //clear just arrays
         keysJustDown.clear();
         keysJustUp.clear();
-
-        try {
-
-            StringBuffer sb = new StringBuffer();
-            NonBlockingReader reader = TerminalWindow.get().getTerminal().reader();
-
-            int c;
-            while ((c = reader.read(1)) >= 0) {
-                sb.append((char) c);
-            }
-
-            if (sb.isEmpty()) return;
-
-            String[] sequences = sb.toString().split("(?=\033)");
-            for (String seq : sequences) {
-                parseKittyEvent(seq);
-            }
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
     }
 
     static void clean() {
+        poolingThread.interrupt();
+
         TerminalWindow.get().moveCursor(1, 1).resetColors().clear();
     }
 
