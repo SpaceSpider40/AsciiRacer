@@ -1,11 +1,14 @@
 package com.space.engine.core;
 
+import com.space.engine.core.actors.FreeCameraActor;
 import com.space.engine.core.graphics.TerminalWindow;
 import org.jline.utils.NonBlockingReader;
 
 import java.io.IOException;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 
 //todo: move to background thread
@@ -38,13 +41,16 @@ public final class Input {
     public static final int KEY_Y = 121;
     public static final int KEY_Z = 122;
 
-    private static final int DEFAULT_POOLING_HZ = 60;
+    private static final byte MAX_KEY_EVENTS_PER_FRAME = 25;
 
     private static final Set<Integer> keysDown = ConcurrentHashMap.newKeySet();
     private static final Set<Integer> keysJustDown = ConcurrentHashMap.newKeySet();
     private static final Set<Integer> keysJustUp = ConcurrentHashMap.newKeySet();
+    private static final Queue<KittyEvent> kittyEventQueue = new ConcurrentLinkedQueue<>();
 
-    private static final int KEY_INPUT_BUFFER_SIZE = 256;
+    private static final Thread poolingThread = new Thread(Input::pool);
+
+    private static NonBlockingReader reader;
 
     public static boolean IsKeyDown(int keycode) {
         return keysDown.contains(keycode);
@@ -58,41 +64,15 @@ public final class Input {
         return keysJustDown.contains(keycode);
     }
 
-    //todo: finish moving pooling to background thread
-    private static final Runnable poolingJob = () -> {
-        while(true) {
-            try {
-
-                StringBuffer sb = new StringBuffer();
-                try (NonBlockingReader reader = TerminalWindow.get().getTerminal().reader()) {
-
-                    int c;
-                    while ((c = reader.read(1)) >= 0) { //todo: for some fucking reason this hangs for over 100ms on linux, kitty. Need to move input to separate thread
-                        sb.append((char) c);
-                    }
-                }
-
-                if (sb.isEmpty()) return;
-
-                String[] sequences = sb.toString().split("(?=\033)");
-                for (String seq : sequences) {
-                    Debug.log("Sequence="+seq);
-                    parseKittyEvent(seq);
-                }
-
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    };
-    private static final Thread poolingThread = new Thread(poolingJob);
-
-
     static void init() throws IOException, InterruptedException {
-        TerminalWindow.get().getTerminal().enterRawMode();
+        var term = TerminalWindow.get().getTerminal();
 
-        System.out.print("\033[>27u");
-        System.out.flush();
+        term.enterRawMode();
+
+        reader = term.reader();
+
+        term.writer().print("\033[>27u");
+        term.writer().flush();
 
         poolingThread.start();
     }
@@ -101,16 +81,77 @@ public final class Input {
         //clear just arrays
         keysJustDown.clear();
         keysJustUp.clear();
+
+        for (int i = 0; i < MAX_KEY_EVENTS_PER_FRAME && !kittyEventQueue.isEmpty(); i++) {
+            KittyEvent event = kittyEventQueue.poll();
+
+            if (event == null) break;
+
+            if (event.eventType == 3) {
+                if (keysDown.remove(event.keyCode)) {
+                    keysJustUp.add(event.keyCode);
+                }
+            }
+            if (event.eventType == 1) {
+                boolean isInitialPress = keysDown.add(event.keyCode);
+
+                if (isInitialPress) {
+                    keysJustDown.add(event.keyCode);
+                }
+            }
+        }
     }
 
     static void clean() {
         poolingThread.interrupt();
+        try {
+            reader.close();
+        } catch (IOException e) {
+            Debug.err(e.getMessage());
+        }
 
         TerminalWindow.get().moveCursor(1, 1).resetColors().clear();
     }
 
-    private static void parseKittyEvent(String seq) {
-        if (!seq.startsWith("\033[") || !seq.endsWith("u")) return;
+    /**
+     * !Runs on separate thread!
+     */
+    private static void pool() {
+
+        final StringBuilder sb = new StringBuilder();
+
+        while (Thread.currentThread().isAlive()) {
+            try {
+
+                int first = reader.read();
+
+                sb.append((char) first);
+
+                Thread.sleep(1);
+
+                while (reader.available() > 0) {
+                    sb.append((char) reader.read());
+                }
+
+                String[] sequences = sb.toString().split("(?=\033)");
+                for (String seq : sequences) {
+                    KittyEvent event = parseKittyEvent(seq);
+
+                    if (event == null) continue;
+
+                    kittyEventQueue.offer(event);
+                }
+
+                sb.setLength(0);
+
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static KittyEvent parseKittyEvent(String seq) {
+        if (!seq.startsWith("\033[") || !seq.endsWith("u")) return null;
 
         String body = seq.substring(2, seq.length() - 1); // strip \033[ and u
 
@@ -125,7 +166,7 @@ public final class Input {
             }
         }
 
-        if (eventType == 2) return;
+        if (eventType == 2) return null;
 
         String keyAndMods = parts[0];
         String[] keyDetails = keyAndMods.split(";");
@@ -134,20 +175,12 @@ public final class Input {
         try {
             keyCode = Integer.parseInt(keyDetails[0]);
         } catch (NumberFormatException e) {
-            return;
+            return null;
         }
 
-        if (eventType == 3) {
-            if (keysDown.remove(keyCode)) {
-                keysJustUp.add(keyCode);
-            }
-        }
-        if (eventType == 1) {
-            boolean isInitialPress = keysDown.add(keyCode);
+        return new KittyEvent(keyCode, eventType);
+    }
 
-            if (isInitialPress) {
-                keysJustDown.add(keyCode);
-            }
-        }
+    private record KittyEvent(int keyCode, int eventType) {
     }
 }

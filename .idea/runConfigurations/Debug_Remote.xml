@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Debug Ghostty Editor" type="Remote" activateToolWindowBeforeRun="false">
+  <configuration default="false" name="Debug Remote" type="Remote" activateToolWindowBeforeRun="false">
     <module name="AE" />
     <option name="USE_SOCKET_TRANSPORT" value="true" />
     <option name="SERVER_MODE" value="false" />
