@@ -50,7 +50,7 @@ public class AssetManager implements AssetContext {
             var registered = typesMap.get(type);
 
             if (registered == null) {
-                throw new AssetException("No factory registered for " + type);
+                throw new AssetException("No factory registered for '" + type + "' type");
             }
 
             loadingStack.add(id);

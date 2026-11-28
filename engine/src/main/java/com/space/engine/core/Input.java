@@ -127,7 +127,7 @@ public final class Input {
 
                 sb.append((char) first);
 
-                Thread.sleep(1);
+                Thread.sleep(1); //waits 1ms to allow for kitty to write input events
 
                 while (reader.available() > 0) {
                     sb.append((char) reader.read());

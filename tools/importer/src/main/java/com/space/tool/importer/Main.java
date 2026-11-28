@@ -2,7 +2,9 @@ package com.space.tool.importer;
 
 import com.space.engine.core.Launcher;
 
+import java.io.FileInputStream;
 import java.nio.file.Path;
+import java.util.Properties;
 
 //
 // inputes path to folder where game.properties are localized. From props finds paths to save assets;
@@ -12,13 +14,17 @@ public class Main {
             throw new Exception("Needed arguments: source destination");
         }
 
-        Path source      = Path.of(args[0]).normalize();
-        Path destination = Path.of(args[1]).normalize();
+        Path propertiesPath  = Path.of(args[0]).normalize();
+        Path sourcePath      = Path.of(args[1]).normalize();
 
-        if (!(source.toString().endsWith(".gltf") || source.toString().endsWith(".glb"))) {
+        if (!(sourcePath.toString().endsWith(".gltf") || sourcePath.toString().endsWith(".glb"))) {
             throw new Exception("unsupported format or invalid path");
         }
 
-        Launcher.launch(new Importer(source, destination));
+        Properties props = new Properties();
+
+        props.load(new FileInputStream(propertiesPath.toFile()));
+
+        Launcher.launch(new Importer(sourcePath), props);
     }
 }

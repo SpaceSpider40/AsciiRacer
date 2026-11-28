@@ -48,6 +48,48 @@
           "z": 1.0
         }
       }
+    },
+    {
+      "name": "Tree_1",
+      "prefab": "actors/tree0.actor",
+      "transform": {
+        "position": {
+          "x": 3.0,
+          "y": 0,
+          "z": 3.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 45.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      }
+    },
+    {
+      "name": "Tree_2",
+      "prefab": "actors/tree0.actor",
+      "transform": {
+        "position": {
+          "x": 5.0,
+          "y": 0,
+          "z": 10.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      }
     }
   ]
 }
